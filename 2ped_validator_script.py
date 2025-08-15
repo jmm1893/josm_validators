@@ -276,8 +276,8 @@ def main():
             midpoint_index = len(way.getNodes()) // 2
             midpoint_node = way.getNode(midpoint_index)
             create_marker_around(
-                midpoint_node.getCoor(), 
-                combined_data, 
+                midpoint_node.getCoor(),
+                combined_data,
                 "Crossing tag logic problem(s): " + "; ".join(crossing_issues) + " [Way: id=%s]." % way.getId()
             )
     # 2. Node <-> way consistency: for all nodes with parent crossing ways
@@ -306,8 +306,8 @@ def main():
             issues = check_crossing_tag_consistency(node, parent_ways, all_relevant_ways)
             if issues:
                 create_marker_around(
-                    node.getCoor(), 
-                    combined_data, 
+                    node.getCoor(),
+                    combined_data,
                     "Crossing tag mismatch at node: " + "; ".join(issues) + " [Node: id=%s]" % node.getId()
                 )
     # 3. Way <-> node consistency: for each crossing way, check its crossing nodes
@@ -347,8 +347,7 @@ def main():
             MainApplication.getMainFrame(),
             "No issues detected"
         )
-# =========
+# =========================
 # Run the main function
-# =========
-if __name__ == "__main__":
-    main()
+# =========================
+main()
