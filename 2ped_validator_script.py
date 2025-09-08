@@ -253,6 +253,7 @@ def main():
     # Create validation layer
     combined_data = DataSet()
     combined_layer = OsmDataLayer(combined_data, "Footway Tag Checks", None)
+    combined_layer.setUploadDiscouraged(True)
     # Draw markers shape for detected issues
     for node in shared_nodes:
         if is_plus_intersection(node, node_neighbors):
