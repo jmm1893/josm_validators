@@ -4,10 +4,10 @@ from org.openstreetmap.josm.gui import MainApplication
 from org.openstreetmap.josm.gui.layer import OsmDataLayer
 from org.openstreetmap.josm.data.coor import LatLon
 from java.lang import Math
-
 # =========
 # Constants - change values as needed
 # =========
+
 SQUARE_HALF_DIAGONAL = 0.00005  #modify to change square size
 DISTANCE_THRESHOLD_METERS = 5 #modify to change neighboring features distance to validate
 ROAD_TYPES = [
@@ -18,18 +18,13 @@ ROAD_TYPES = [
 # Tag for marker (set to None to use default)
 SQUARE_TAG_KEY = None  # e.g., "building"
 SQUARE_TAG_VALUE = None  # e.g., "yes"
-
-MAJOR_HIGHWAYS = {"primary", "trunk", "motorway"}
-
 # =========
-# Functions
+# Helper Functions
 # =========
 def is_excluded_cycleway(way):
     return way.hasTag("highway", "cycleway") and way.hasTag("foot", "no")
-
 def is_plus_intersection(node, node_neighbors):
     return len(node_neighbors.get(node, [])) >= 4
-
 def is_valid_crossing_way(tags):
     if tags.get("highway") == "cycleway" and tags.get("foot") == "no":
         return False
@@ -42,7 +37,6 @@ def is_valid_crossing_way(tags):
     if cycleway == "crossing" and highway == "cycleway" and foot in ("designated", "yes"):
         return True
     return False
-
 def check_crossing_tags(way):
     if is_excluded_cycleway(way):
         return []
@@ -82,7 +76,6 @@ def check_crossing_tags(way):
         if valid_crossing and not crossing:
             issues.append("Potentially missing crossing tag: valid crossing way tags present but missing crossing=* tag")
     return issues
-
 def node_is_on_cycleway(node, all_ways):
     for w in all_ways:
         if w in all_ways and is_excluded_cycleway(w):
@@ -90,13 +83,11 @@ def node_is_on_cycleway(node, all_ways):
         if node in w.getNodes() and w.hasTag("highway", "cycleway"):
             return True
     return False
-
 def is_valid_crossing_parent_way(way):
     if is_excluded_cycleway(way):
         return False
     tags = way.getKeys()
     return is_valid_crossing_way(tags)
-
 def check_crossing_tag_consistency(node, parent_ways, all_ways):
     issues = []
     node_crossing = node.get("crossing") if node.hasKey("crossing") else None
@@ -123,7 +114,7 @@ def check_crossing_tag_consistency(node, parent_ways, all_ways):
         if (node_crossing and not way_crossing) or (way_crossing and not node_crossing):
             issues.append("crossing=* present on one but not the other")
     return issues
-    def check_crossing_tag_consistency_way(way):
+def check_crossing_tag_consistency_way(way):
     issues = []
     if is_excluded_cycleway(way):
         return issues
@@ -150,7 +141,6 @@ def check_crossing_tag_consistency(node, parent_ways, all_ways):
             if (node_crossing and not way_crossing) or (way_crossing and not node_crossing):
                 issues.append((node, "crossing=* present on one but not the other"))
     return issues
-
 def is_crossing_missing_tag(node, all_ways):
     if not node.hasTag("highway", "crossing"):
         return (False, "")
@@ -163,7 +153,6 @@ def is_crossing_missing_tag(node, all_ways):
             if way.hasTag("highway", "service"):
                 return (False, "")
     return (True, "highway=crossing node is missing crossing=* tag (not on a service way)")
-
 def create_marker_around(coor, dataset, note_text):
     lat = coor.lat()
     lon = coor.lon()
@@ -187,54 +176,12 @@ def create_marker_around(coor, dataset, note_text):
     marker_way.put(tag_key, tag_value)
     marker_way.put("note", note_text)
     dataset.addPrimitive(marker_way)
-
 def remove_existing_layer(layer_name):
     layer_manager = MainApplication.getLayerManager()
     for layer in layer_manager.getLayers():
         if layer.getName() == layer_name:
             layer_manager.removeLayer(layer)
             break
-
-# =========
-# New logic to detect false positive highway=crossing nodes
-# =========
-def has_connected_pedestrian_paths(node, all_ways):
-    for way in all_ways:
-        if node in way.getNodes():
-            # Check for footway or sidewalk
-            if way.hasTag("highway", "footway") or way.hasTag("footway", "sidewalk"):
-                return True
-            # Check for crossing ways
-            crossing = way.get("crossing")
-            if crossing is not None:
-                return True
-    return False
-
-def is_node_on_major_highway_intersection(node, all_ways):
-    connected_highways = set()
-    for way in all_ways:
-        if node in way.getNodes():
-            highway_type = way.get("highway")
-            if highway_type in MAJOR_HIGHWAYS:
-                connected_highways.add(highway_type)
-    return len(connected_highways) >= 2  # Intersection of two or more major highways
-
-def detect_false_positive_crossing_nodes(all_ways, dataset):
-    false_positive_nodes = []
-    for way in all_ways:
-        for node in way.getNodes():
-            if node.hasTag("highway", "crossing"):
-                if is_node_on_major_highway_intersection(node, all_ways):
-                    if not has_connected_pedestrian_paths(node, all_ways):
-                        false_positive_nodes.append(node)
-    # Create markers for false positives
-    for node in false_positive_nodes:
-        create_marker_around(
-            node.getCoor(),
-            dataset,
-            "False positive highway=crossing node: Intersection of major highways with no pedestrian paths."
-        )
-
 # =========
 # Main Logic
 # =========
@@ -246,14 +193,6 @@ def main():
             "No active data layer found."
         )
         return
-
-    if edit_layer.getName() == "Footway Tag Checks":
-        JOptionPane.showMessageDialog(
-            MainApplication.getMainFrame(),
-            "Do not Upload with this layer"
-        )
-        return
-
     original_layer_name = edit_layer.getName()
     selected = edit_layer.data.getSelected()
     if not selected:
@@ -262,7 +201,6 @@ def main():
             "No features selected."
         )
         return
-
     selected_ways = [w for w in selected if isinstance(w, Way)]
     if not selected_ways:
         JOptionPane.showMessageDialog(
@@ -270,11 +208,9 @@ def main():
             "No ways selected."
         )
         return
-
     selected_nodes = set()
     for way in selected_ways:
         selected_nodes.update(way.getNodes())
-
     all_relevant_ways = set(selected_ways)
     for way in edit_layer.data.getWays():
         if way in all_relevant_ways:
@@ -291,7 +227,6 @@ def main():
                     pass
             if way in all_relevant_ways:
                 break
-
     footway_nodes = set()
     road_nodes = set()
     node_neighbors = {}
@@ -313,13 +248,12 @@ def main():
             elif way.hasKey("highway") and way.get("highway") in ROAD_TYPES:
                 road_nodes.add(node)
     shared_nodes = footway_nodes.intersection(road_nodes)
-
     # Remove existing "Footway Tag Checks" layer if it exists
     remove_existing_layer("Footway Tag Checks")
-
     # Create validation layer
     combined_data = DataSet()
     combined_layer = OsmDataLayer(combined_data, "Footway Tag Checks", None)
+    combined_layer.setUploadDiscouraged(True)
     # Draw markers shape for detected issues
     for node in shared_nodes:
         if is_plus_intersection(node, node_neighbors):
@@ -330,8 +264,7 @@ def main():
                 combined_data,
                 "Likely missing highway=crossing: Node at intersection of footway and road (plus intersection) has no crossing tag. [Untagged crossing detected]"
             )
-
-    # 1. Check crossing tag logic errors on ways and include description
+    # 1. Check crossing tag logic errors on ways and include  description
     for way in all_relevant_ways:
         if is_excluded_cycleway(way):
             continue
@@ -348,7 +281,6 @@ def main():
                 combined_data,
                 "Crossing tag logic problem(s): " + "; ".join(crossing_issues) + " [Way: id=%s]." % way.getId()
             )
-
     # 2. Node <-> way consistency: for all nodes with parent crossing ways
     for node in shared_nodes:
         node_highway_types = set()
@@ -379,7 +311,6 @@ def main():
                     combined_data,
                     "Crossing tag mismatch at node: " + "; ".join(issues) + " [Node: id=%s]" % node.getId()
                 )
-
     # 3. Way <-> node consistency: for each crossing way, check its crossing nodes
     for way in all_relevant_ways:
         if is_excluded_cycleway(way):
@@ -397,7 +328,6 @@ def main():
                     combined_data,
                     desc
                 )
-
     # 4. Missing crossing=* tag on highway=crossing nodes
     for way in all_relevant_ways:
         if is_excluded_cycleway(way):
@@ -406,10 +336,7 @@ def main():
             missing, desc = is_crossing_missing_tag(node, all_relevant_ways)
             if missing:
                 create_marker_around(node.getCoor(), combined_data, "Tag issue: %s [Node id=%s]" % (desc, node.getId()))
-
-    # New: Detect false positive crossing nodes and create markers
-    detect_false_positive_crossing_nodes(all_relevant_ways, combined_data)
-
+    # Only add the combined_layer if there are actual primitives (markers) in combined_data.
     if combined_data.allPrimitives:
         MainApplication.getLayerManager().addLayer(combined_layer)
         JOptionPane.showMessageDialog(
@@ -421,6 +348,7 @@ def main():
             MainApplication.getMainFrame(),
             "No issues detected"
         )
-
+# =========================
 # Run the main function
+# =========================
 main()
